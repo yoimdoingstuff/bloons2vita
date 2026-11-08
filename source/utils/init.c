@@ -31,6 +31,7 @@
 #include "game/audio.h"
 #include "game/coco.h"
 #include "game/prefs.h"
+#include "game/save_import.h"
 #include "game/settings.h"
 #include "patch.h"
 
@@ -182,6 +183,7 @@ void soloader_init_all() {
     coco_resolve();
 
     prefs_load(DATA_PATH "prefs.txt");
+    save_import_run();
     settings_load();
 
     if (apk_open(APK_PATH) < 0)

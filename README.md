@@ -95,6 +95,24 @@ precisely:
 Your progress is saved to `ux0:data/bloons2/prefs.txt` and
 `ux0:data/bloons2/files/`.
 
+### Bringing over your Android save (optional)
+
+You can carry over your progress, and anything your copy of the game
+recorded as purchased, from your phone. The game keeps its save in
+`/data/data/com.miniclip.bloons2/`, which normally needs a rooted phone (or
+a backup tool that can extract app data) to copy.
+
+1. From that folder, copy `shared_prefs/GAME_INFO.xml` and the `files`
+   folder to `ux0:data/bloons2/import/` on your Vita:
+
+```
+  ux0:data/bloons2/import/shared_prefs/GAME_INFO.xml
+  ux0:data/bloons2/import/files/...
+```
+
+2. Start the game. It imports the save once, shows how much it imported,
+   and renames the folder to `import_done`.
+
 Controls
 -----------------
 

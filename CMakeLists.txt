@@ -68,6 +68,7 @@ add_executable(${CMAKE_PROJECT_NAME}
                source/game/context.c
                source/game/input.c
                source/game/prefs.c
+               source/game/save_import.c
                source/game/settings.c
                source/game/texture.c
                source/reimpl/bits/_ctype.c
