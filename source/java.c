@@ -27,6 +27,7 @@
 #include <psp2/kernel/processmgr.h>
 #include <psp2/message_dialog.h>
 
+#include "game/achievements.h"
 #include "game/apk.h"
 #include "game/audio.h"
 #include "game/coco.h"
@@ -391,6 +392,32 @@ jint getDurationForSound(jmethodID id, va_list args) {
     jint ret = audio_get_duration_ms(path);
     free(path);
     return ret;
+}
+
+/*
+ * Achievements -> trophies. The game's Game Center layer reports through
+ * these; IDs are the iOS ones (com.digitalgoldfish.bloons2.*).
+ */
+
+// openFeint_UnlockAchievement(String id)
+void openFeint_UnlockAchievement(jmethodID id, va_list args) {
+    char *ach = jstr_dup(va_arg(args, jstring));
+    achievement_report(ach, 100.0f);
+    free(ach);
+}
+
+// openFeint_UpdateAchievement(String id, float percent) and
+// custom_updateAchievement(String id, float percent[, Object])
+void updateAchievement(jmethodID id, va_list args) {
+    char *ach = jstr_dup(va_arg(args, jstring));
+    jfloat percent = VA_FLOAT(args);
+    achievement_report(ach, percent);
+    free(ach);
+}
+
+void setGameState(jmethodID id, va_list args) {
+    jint state = va_arg(args, jint);
+    l_info("setGameState(%i)", state);
 }
 
 /*
@@ -883,14 +910,14 @@ MethodsVoid methodsVoid[] = {
     { M_hideAds, stub_void },
     { M_showTapJoyOffers, stub_void },
     { M_spendTapPoints, stub_void },
-    { M_setGameState, stub_void },
+    { M_setGameState, setGameState },
     { M_openFeint_login, stub_void },
     { M_openFeint_showDashboard, stub_void },
     { M_openFeint_showAchievements, stub_void },
     { M_openFeint_showLeaderboards, stub_void },
     { M_openFeint_showLeaderboard, stub_void },
-    { M_openFeint_UnlockAchievement, stub_void },
-    { M_openFeint_UpdateAchievement, stub_void },
+    { M_openFeint_UnlockAchievement, openFeint_UnlockAchievement },
+    { M_openFeint_UpdateAchievement, updateAchievement },
     { M_openFeint_PostScore, stub_void },
     { M_openFeint_PostScoreWithString, stub_void },
     { M_startFlurrySession, stub_void },
@@ -927,7 +954,7 @@ MethodsVoid methodsVoid[] = {
     { M_custom_updateScore, stub_void },
     { M_custom_showLeaderboard, stub_void },
     { M_custom_showLeaderboards, stub_void },
-    { M_custom_updateAchievement, stub_void },
+    { M_custom_updateAchievement, updateAchievement },
     { M_custom_showAchievements, stub_void },
     { M_NF_showBoard, stub_void },
     { M_NF_showUrgentBoard, stub_void },

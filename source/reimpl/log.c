@@ -8,11 +8,13 @@
  */
 
 #include "reimpl/log.h"
+#include "game/context.h"
 #include "utils/logger.h"
 #include <psp2/kernel/clib.h>
 #include <stdlib.h>
 
 #define print_common \
+    context_feed(text); \
     switch (prio) { \
         case ANDROID_LOG_INFO: \
             l_info("[ALOG][%s] %s", tag, text); \

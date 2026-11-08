@@ -1,7 +1,7 @@
 /*
  * main.c
  *
- * Bloons 2 PS Vita port: entry point, game lifecycle and input.
+ * Bloons 2 PS Vita port: entry point and game lifecycle.
  *
  * The startup sequence mirrors what the original Java code does:
  *   cocojava.firstRun()             -> MsetMainActivity, MsetCountryCode,
@@ -14,6 +14,8 @@
  *                                      assets/unpack/, MsetAPKPath), Mrun
  *   ClearRenderer.onDrawFrame       -> Mrender
  *
+ * Input (touchscreen and the button controls) lives in game/input.c.
+ *
  * This software may be modified and distributed under the terms
  * of the GPLv3 license. See the LICENSE file for details.
  */
@@ -23,19 +25,16 @@
 #include <string.h>
 
 #include <psp2/apputil.h>
-#include <psp2/ctrl.h>
-#include <psp2/kernel/clib.h>
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/system_param.h>
-#include <psp2/touch.h>
 
 #include <falso_jni/FalsoJNI.h>
-#include <falso_jni/FalsoJNI_ImplBridge.h>
 #include <so_util/so_util.h>
 
 #include "game/apk.h"
 #include "game/coco.h"
+#include "game/input.h"
 #include "java.h"
 #include "reimpl/io.h"
 #include "utils/glutil.h"
@@ -50,10 +49,6 @@
 int _newlib_heap_size_user = 192 * 1024 * 1024;
 
 so_module so_mod;
-
-/*
- * Helpers
- */
 
 static jstring jstr(const char *s) {
     return jni->NewStringUTF(&jni, s);
@@ -70,151 +65,6 @@ static const char *system_language_code(void) {
         return "en";
     return codes[lang];
 }
-
-/*
- * Touch input
- *
- * Android pointer IDs are small integers that get reused, while the Vita
- * reports arbitrary 0-127 IDs, so we hand out our own slots.
- */
-
-#define MAX_POINTERS 6
-
-typedef struct {
-    bool active;
-    int vita_id;
-    float x, y;
-} Pointer;
-
-static Pointer pointers[MAX_POINTERS];
-
-static int pointer_find(int vita_id) {
-    for (int i = 0; i < MAX_POINTERS; i++)
-        if (pointers[i].active && pointers[i].vita_id == vita_id)
-            return i;
-    return -1;
-}
-
-static int pointer_alloc(int vita_id) {
-    for (int i = 0; i < MAX_POINTERS; i++) {
-        if (!pointers[i].active) {
-            pointers[i].active = true;
-            pointers[i].vita_id = vita_id;
-            return i;
-        }
-    }
-    return -1;
-}
-
-static void send_touches_move(void) {
-    int n = 0;
-    for (int i = 0; i < MAX_POINTERS; i++)
-        if (pointers[i].active) n++;
-    if (n == 0) return;
-
-    jintArray ids = jni->NewIntArray(&jni, n);
-    jfloatArray xs = jni->NewFloatArray(&jni, n);
-    jfloatArray ys = jni->NewFloatArray(&jni, n);
-
-    if (ids && xs && ys) {
-        jint *pid = ((JavaDynArray *)ids)->array;
-        jfloat *px = ((JavaDynArray *)xs)->array;
-        jfloat *py = ((JavaDynArray *)ys)->array;
-
-        int k = 0;
-        for (int i = 0; i < MAX_POINTERS; i++) {
-            if (!pointers[i].active) continue;
-            pid[k] = i;
-            px[k] = pointers[i].x;
-            py[k] = pointers[i].y;
-            k++;
-        }
-
-        coco.MtouchesMove(&jni, COCO_CLASS, ids, xs, ys);
-    }
-
-    if (ids) jda_free((JavaDynArray *)ids);
-    if (xs) jda_free((JavaDynArray *)xs);
-    if (ys) jda_free((JavaDynArray *)ys);
-}
-
-static void poll_touch(void) {
-    SceTouchData touch;
-    if (sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1) < 0)
-        return;
-
-    bool moved = false;
-
-    // Releases
-    for (int i = 0; i < MAX_POINTERS; i++) {
-        if (!pointers[i].active) continue;
-        bool still_down = false;
-        for (int r = 0; r < touch.reportNum; r++) {
-            if (touch.report[r].id == pointers[i].vita_id) {
-                still_down = true;
-                break;
-            }
-        }
-        if (!still_down) {
-            pointers[i].active = false;
-            coco.MtouchesEnd(&jni, COCO_CLASS, i, pointers[i].x, pointers[i].y);
-        }
-    }
-
-    // Presses and moves
-    for (int r = 0; r < touch.reportNum; r++) {
-        float x = (float)touch.report[r].x * (float)SCREEN_W / 1920.0f;
-        float y = (float)touch.report[r].y * (float)SCREEN_H / 1088.0f;
-
-        int slot = pointer_find(touch.report[r].id);
-        if (slot < 0) {
-            slot = pointer_alloc(touch.report[r].id);
-            if (slot < 0) continue;
-            pointers[slot].x = x;
-            pointers[slot].y = y;
-            coco.MtouchesBegin(&jni, COCO_CLASS, slot, x, y);
-        } else if (pointers[slot].x != x || pointers[slot].y != y) {
-            pointers[slot].x = x;
-            pointers[slot].y = y;
-            moved = true;
-        }
-    }
-
-    if (moved)
-        send_touches_move();
-}
-
-static void release_all_touches(void) {
-    for (int i = 0; i < MAX_POINTERS; i++) {
-        if (pointers[i].active) {
-            pointers[i].active = false;
-            coco.MtouchesEnd(&jni, COCO_CLASS, i, pointers[i].x, pointers[i].y);
-        }
-    }
-}
-
-/*
- * Buttons: the game is touch-only; the Android Back key opens the pause menu
- * in-game and the quit prompt in the main menu.
- */
-
-static uint32_t old_buttons = 0;
-
-static void poll_buttons(void) {
-    SceCtrlData pad;
-    if (sceCtrlPeekBufferPositive(0, &pad, 1) < 0)
-        return;
-
-    uint32_t pressed = pad.buttons & ~old_buttons;
-    old_buttons = pad.buttons;
-
-    if ((pressed & (SCE_CTRL_START | SCE_CTRL_CIRCLE)) && coco.MpressedBackButton)
-        coco.MpressedBackButton(&jni, COCO_CLASS);
-}
-
-/*
- * Game thread
- */
 
 static void game_setup(void) {
     int (*JNI_OnLoad)(JavaVM *vm, void *reserved) = (void *)so_symbol(&so_mod, "JNI_OnLoad");
@@ -265,25 +115,23 @@ static void game_setup(void) {
 }
 
 static void *game_thread(void *arg) {
-    sceCtrlSetSamplingMode(SCE_CTRL_MODE_DIGITAL);
-    sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
-
     game_setup();
+    input_init();
 
     bool dialog_was_active = false;
     uint64_t last_frame = sceKernelGetProcessTimeWide();
 
     while (1) {
-        if (!dialog_was_active) {
-            poll_touch();
-            poll_buttons();
-        }
+        if (!dialog_was_active)
+            input_update();
 
         coco.Mrender(&jni, COCO_CLASS);
 
         bool dialog_active = java_ui_update();
         if (dialog_active && !dialog_was_active)
-            release_all_touches();
+            input_release_all();
+        else if (!dialog_active && dialog_was_active)
+            input_resume();
         dialog_was_active = dialog_active;
 
         gl_swap(dialog_active ? GL_TRUE : GL_FALSE);

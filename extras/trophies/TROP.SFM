@@ -1,0 +1,80 @@
+<!--Sce-Np-Trophy-Signature: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-->
+<trophyconf version="1.1" platform="psp2" policy="large">
+ <npcommid>BLNS20001_00</npcommid>
+ <trophyset-version>01.00</trophyset-version>
+ <parental-level license-area="default">0</parental-level>
+ <title-name>Bloons 2</title-name>
+ <title-detail>Throw darts, pop the bloons and clear every level with as few darts as you can.</title-detail>
+ <trophy id="000" hidden="no" ttype="P" pid="-1">
+  <name>Monkey Legend</name>
+  <detail>Unlock all other trophies.</detail>
+ </trophy>
+ <trophy id="001" hidden="no" ttype="G" pid="000">
+  <name>Million Pops</name>
+  <detail>Pop 100k Bloons.</detail>
+ </trophy>
+ <trophy id="002" hidden="no" ttype="S" pid="000">
+  <name>Bloon Baron</name>
+  <detail>Launch 100 monkey aces.</detail>
+ </trophy>
+ <trophy id="003" hidden="no" ttype="B" pid="000">
+  <name>100%</name>
+  <detail>Pop every Bloon in a level.</detail>
+ </trophy>
+ <trophy id="004" hidden="no" ttype="B" pid="000">
+  <name>Swing and a Miss</name>
+  <detail>Hit nothing.</detail>
+ </trophy>
+ <trophy id="005" hidden="no" ttype="G" pid="000">
+  <name>Ace Monkey</name>
+  <detail>Complete the game.</detail>
+ </trophy>
+ <trophy id="006" hidden="no" ttype="B" pid="000">
+  <name>Bloons of Steel</name>
+  <detail>Use a Super Monkey.</detail>
+ </trophy>
+ <trophy id="007" hidden="no" ttype="B" pid="000">
+  <name>Bloon Academy</name>
+  <detail>Use a solution.</detail>
+ </trophy>
+ <trophy id="008" hidden="no" ttype="B" pid="000">
+  <name>Easter Egg</name>
+  <detail>Pop 25 Bloons in the main menu.</detail>
+ </trophy>
+ <trophy id="009" hidden="no" ttype="B" pid="000">
+  <name>Starfleet Bloon</name>
+  <detail>Spin the planet 50 times.</detail>
+ </trophy>
+ <trophy id="010" hidden="no" ttype="B" pid="000">
+  <name>Daisy Cutter</name>
+  <detail>You completed Popping Fields!</detail>
+ </trophy>
+ <trophy id="011" hidden="no" ttype="B" pid="000">
+  <name>Just Deserts</name>
+  <detail>You completed Bloon Dunes!</detail>
+ </trophy>
+ <trophy id="012" hidden="no" ttype="B" pid="000">
+  <name>Ice Demon</name>
+  <detail>You completed Frosty Fun!</detail>
+ </trophy>
+ <trophy id="013" hidden="no" ttype="B" pid="000">
+  <name>My Everest</name>
+  <detail>You completed Sneak Peaks!</detail>
+ </trophy>
+ <trophy id="014" hidden="no" ttype="S" pid="000">
+  <name>Jungle Fever</name>
+  <detail>You completed Rubber Jungle!</detail>
+ </trophy>
+ <trophy id="015" hidden="no" ttype="S" pid="000">
+  <name>Temple of Bloon</name>
+  <detail>You completed Temple of Bloon!</detail>
+ </trophy>
+ <trophy id="016" hidden="no" ttype="S" pid="000">
+  <name>Bloon BBQ</name>
+  <detail>You completed Crazy Coast!</detail>
+ </trophy>
+ <trophy id="017" hidden="no" ttype="S" pid="000">
+  <name>Hot Stuff</name>
+  <detail>You completed Mount Magma!</detail>
+ </trophy>
+</trophyconf>

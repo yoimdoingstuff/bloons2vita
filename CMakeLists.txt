@@ -61,10 +61,14 @@ add_executable(${CMAKE_PROJECT_NAME}
                source/dynlib.c
                source/java.c
                source/patch.c
+               source/game/achievements.c
                source/game/apk.c
                source/game/audio.c
                source/game/coco.c
+               source/game/context.c
+               source/game/input.c
                source/game/prefs.c
+               source/game/settings.c
                source/game/texture.c
                source/reimpl/bits/_ctype.c
                source/reimpl/errno.c
@@ -78,6 +82,7 @@ add_executable(${CMAKE_PROJECT_NAME}
                source/utils/glutil.c
                source/utils/init.c
                source/utils/logger.c
+               source/utils/trophies.c
                source/utils/utils.c
                lib/pthread-svelte/source/cond_user.c
                lib/pthread-svelte/source/mutex_user.c
@@ -89,6 +94,11 @@ add_executable(${CMAKE_PROJECT_NAME}
                lib/falso_jni/converter.c
                lib/sha1/sha1.c
                lib/so_util/so_util.c)
+
+# vitaGL contains C++ code (its shader expression parser), but all of our own
+# sources are C. Link with the C++ driver so libstdc++/libsupc++ (operator
+# new/delete, exceptions, std::string) get pulled in after every library.
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM
                            PUBLIC ${CMAKE_SOURCE_DIR}/lib
@@ -124,6 +134,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
                       SceDisplay_stub
                       SceGxm_stub
                       SceKernelDmacMgr_stub
+                      SceNpTrophy_stub
                       ScePower_stub
                       SceRtc_stub
                       SceSysmodule_stub
@@ -142,6 +153,7 @@ vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 ${CMAKE_SOURCE_DIR}/extras/livearea/bg0.png sce_sys/livearea/contents/bg0.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/startup.png sce_sys/livearea/contents/startup.png
                 ${CMAKE_SOURCE_DIR}/extras/livearea/template.xml sce_sys/livearea/contents/template.xml
+                ${CMAKE_SOURCE_DIR}/extras/trophies/TROPHY.TRP sce_sys/trophy/${VITA_TITLEID}_00/TROPHY.TRP
                 )
 
 add_custom_target(send

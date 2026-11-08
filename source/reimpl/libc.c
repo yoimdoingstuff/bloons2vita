@@ -21,6 +21,7 @@
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/threadmgr.h>
 
+#include "game/context.h"
 #include "utils/logger.h"
 
 /*
@@ -45,6 +46,13 @@ static inline int std_index(FILE *f) {
 }
 
 static void std_write(const char *s, size_t len) {
+    // The game's screen changes are also visible in its stdout logging
+    char line[512];
+    size_t n = len < sizeof(line) - 1 ? len : sizeof(line) - 1;
+    memcpy(line, s, n);
+    line[n] = '\0';
+    context_feed(line);
+
 #ifdef DEBUG_SOLOADER
     sceClibPrintf("[GAME] %.*s", (int)len, s);
     if (len && s[len - 1] != '\n')

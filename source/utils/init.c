@@ -12,6 +12,7 @@
 #include "utils/dialog.h"
 #include "utils/glutil.h"
 #include "utils/logger.h"
+#include "utils/trophies.h"
 #include "utils/utils.h"
 
 #include <string.h>
@@ -30,6 +31,7 @@
 #include "game/audio.h"
 #include "game/coco.h"
 #include "game/prefs.h"
+#include "game/settings.h"
 #include "patch.h"
 
 // Base address for the Android .so to be loaded at
@@ -159,6 +161,19 @@ void soloader_init_all() {
 
     check_so_version();
 
+    if (trophies_init() < 0) {
+        l_warn("Trophies initialization failed.");
+        // Only nag once; the game is fully playable without trophies.
+        if (!file_exists(DATA_PATH "notrpdrm_warned")) {
+            warning("This game features unlockable trophies but NoTrpDrm is "
+                    "not installed. If you want to be able to unlock trophies, "
+                    "please install it.");
+            file_save(DATA_PATH "notrpdrm_warned", (const uint8_t *)"1", 1);
+        }
+    } else {
+        l_success("Trophies initialized.");
+    }
+
     // Static constructors may already touch the filesystem, so run them only
     // after everything above is in place.
     so_initialize(&so_mod);
@@ -167,6 +182,7 @@ void soloader_init_all() {
     coco_resolve();
 
     prefs_load(DATA_PATH "prefs.txt");
+    settings_load();
 
     if (apk_open(APK_PATH) < 0)
         fatal_error("Error: could not open %s. Is it a valid .apk file?", APK_PATH);
