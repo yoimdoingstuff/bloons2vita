@@ -1,0 +1,9 @@
+build/*
+.DS_Store
+.idea/
+.vscode/
+cmake-build-*/
+apk/
+*.apk
+*.so
+*.vpk

@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y cmake git make curl xz-utils bzip2 python3
+          echo "VITASDK=$HOME/vitasdk" >> "$GITHUB_ENV"
+
+      - name: Install vitasdk (softfp)
+        run: |
+          git clone --depth 1 https://github.com/vitasdk-softfp/vdpm
+          cd vdpm
+          ./bootstrap-vitasdk.sh
+          export PATH="$VITASDK/bin:$PATH"
+          ./install-all.sh
+
+      - name: Build
+        run: |
+          export PATH="$VITASDK/bin:$PATH"
+          cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bloons2.vpk
+          path: build/Bloons2.vpk
