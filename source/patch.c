@@ -36,6 +36,11 @@
 #include "utils/dialog.h"
 #include "utils/logger.h"
 
+// Not in the user-side SDK headers; same fallback as so_util.c
+#ifndef SCE_KERNEL_MEMBLOCK_TYPE_USER_RX
+#define SCE_KERNEL_MEMBLOCK_TYPE_USER_RX (0x0C20D050)
+#endif
+
 extern so_module so_mod;
 
 #define KUSER_BLOCK          0x9A000000
