@@ -79,8 +79,9 @@ dirent64_bionic * dirent_newlib_to_bionic(const struct dirent* dirent_newlib) {
  */
 SC_INLINE
 void stat_newlib_to_bionic(const struct stat * src, stat64_bionic * dst) {
+    memset(dst, 0, sizeof(*dst));
     dst->st_dev = src->st_dev;
-    dst->__st_ino = src->st_ino;
+    dst->__st_ino = (uint32_t)src->st_ino;
     dst->st_ino = src->st_ino;
     dst->st_mode = src->st_mode;
     dst->st_nlink = src->st_nlink;
@@ -88,12 +89,9 @@ void stat_newlib_to_bionic(const struct stat * src, stat64_bionic * dst) {
     dst->st_gid = src->st_gid;
     dst->st_rdev = src->st_rdev;
     dst->st_size = src->st_size;
-    dst->st_blksize = src->st_blksize;
-    dst->st_blocks = src->st_blocks;
-    dst->st_atim.tv_sec = src->st_atime;
-    dst->st_atim.tv_nsec = 0;
-    dst->st_mtim.tv_sec = src->st_mtime;
-    dst->st_mtim.tv_nsec = 0;
-    dst->st_ctim.tv_sec = src->st_ctime;
-    dst->st_ctim.tv_nsec = 0;
+    dst->st_blksize = src->st_blksize ? src->st_blksize : 4096;
+    dst->st_blocks = src->st_blocks ? src->st_blocks : (uint64_t)((src->st_size + 511) / 512);
+    dst->atime_sec = (uint32_t)src->st_atime;
+    dst->mtime_sec = (uint32_t)src->st_mtime;
+    dst->ctime_sec = (uint32_t)src->st_ctime;
 }

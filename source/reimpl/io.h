@@ -19,6 +19,7 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/dirent.h>
@@ -41,24 +42,41 @@ extern "C" {
 #define DT_WHT 14
 #endif
 
+/*
+ * bionic's `struct stat` on 32-bit ARM (104 bytes). Written with explicit
+ * fixed-width fields and padding: newlib's nlink_t/uid_t/gid_t are 16-bit
+ * and its timespec differs, and the 64-bit fields are 8-byte aligned in
+ * bionic (st_size lives at offset 48). Getting this wrong makes fstat()
+ * report garbage sizes, which broke the game's own zip (apk) reader.
+ */
 typedef struct __attribute__((__packed__)) stat64_bionic {
-    unsigned long long st_dev;
-    unsigned char __pad0[4];
-    unsigned long __st_ino;
-    unsigned int st_mode;
-    nlink_t st_nlink;
-    uid_t st_uid;
-    gid_t st_gid;
-    unsigned long long st_rdev;
-    unsigned char __pad3[4];
-    long long st_size;
-    unsigned long st_blksize;
-    unsigned long long st_blocks;
-    struct timespec st_atim;
-    struct timespec st_mtim;
-    struct timespec st_ctim;
-    unsigned long long st_ino;
+    uint64_t st_dev;          // 0
+    uint8_t  __pad0[4];       // 8
+    uint32_t __st_ino;        // 12
+    uint32_t st_mode;         // 16
+    uint32_t st_nlink;        // 20
+    uint32_t st_uid;          // 24
+    uint32_t st_gid;          // 28
+    uint64_t st_rdev;         // 32
+    uint8_t  __pad3[4];       // 40
+    uint8_t  __align0[4];     // 44: alignment of st_size
+    int64_t  st_size;         // 48
+    uint32_t st_blksize;      // 56
+    uint8_t  __align1[4];     // 60: alignment of st_blocks
+    uint64_t st_blocks;       // 64
+    uint32_t atime_sec;       // 72
+    uint32_t atime_nsec;      // 76
+    uint32_t mtime_sec;       // 80
+    uint32_t mtime_nsec;      // 84
+    uint32_t ctime_sec;       // 88
+    uint32_t ctime_nsec;      // 92
+    uint64_t st_ino;          // 96
 } stat64_bionic;
+
+_Static_assert(sizeof(stat64_bionic) == 104, "bionic struct stat is 104 bytes");
+_Static_assert(__builtin_offsetof(stat64_bionic, st_mode) == 16, "st_mode offset");
+_Static_assert(__builtin_offsetof(stat64_bionic, st_size) == 48, "st_size offset");
+_Static_assert(__builtin_offsetof(stat64_bionic, st_ino) == 96, "st_ino offset");
 
 typedef struct __attribute__((__packed__)) dirent64_bionic {
     int16_t d_ino; // 2 bytes // offset 0x0
@@ -106,6 +124,10 @@ int remove_soloader(const char *path);
 int rename_soloader(const char *old_path, const char *new_path);
 
 int chdir_soloader(const char *path);
+
+char *getcwd_soloader(char *buf, size_t size);
+
+off_t lseek_soloader(int fd, off_t offset, int whence);
 
 int symlink_soloader(const char *target, const char *linkpath);
 

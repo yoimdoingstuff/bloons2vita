@@ -49,6 +49,14 @@ static bool remap_prefix(const char *path, const char *prefix,
     return true;
 }
 
+/*
+ * Working directory, emulated here so relative paths behave as on Android
+ * no matter how newlib handles them. android_cwd is what the game set (and
+ * gets back from getcwd); real_cwd is its Vita location, with a trailing '/'.
+ */
+static char android_cwd[256] = "/";
+static char real_cwd[256] = "";
+
 const char *remap_path(const char *path, char *out, size_t out_size) {
     if (!path)
         return NULL;
@@ -59,6 +67,16 @@ const char *remap_path(const char *path, char *out, size_t out_size) {
         return "app0:/meminfo";
     if (strcmp(path, ANDROID_APK_PATH) == 0)
         return apk_path;
+
+    // Relative path: resolve against the emulated working directory
+    if (path[0] != '/' && !strchr(path, ':')) {
+        if (!real_cwd[0])
+            return path;
+        while (path[0] == '.' && path[1] == '/')
+            path += 2;
+        snprintf(out, out_size, "%s%s", real_cwd, path);
+        return out;
+    }
 
     // Only Android-style absolute paths need remapping
     if (path[0] != '/')
@@ -116,7 +134,14 @@ int fstat_soloader(int fd, stat64_bionic * buf) {
     if (res == 0)
         stat_newlib_to_bionic(&st, buf);
 
+    l_debug("fstat(%i): %i, size %lli", fd, res, res == 0 ? (long long)buf->st_size : -1LL);
     return res;
+}
+
+off_t lseek_soloader(int fd, off_t offset, int whence) {
+    off_t ret = lseek(fd, offset, whence);
+    l_debug("lseek(%i, %li, %i): %li", fd, (long)offset, whence, (long)ret);
+    return ret;
 }
 
 int stat_soloader(const char * path, stat64_bionic * buf) {
@@ -230,8 +255,47 @@ int rename_soloader(const char *old_path, const char *new_path) {
 }
 
 int chdir_soloader(const char *path) {
-    REMAP(real, path);
-    return chdir(real);
+    if (!path) {
+        errno = EFAULT;
+        return -1;
+    }
+
+    // Build the new Android-style cwd (absolute or relative to the current one)
+    char android_new[256];
+    if (path[0] == '/' || strchr(path, ':'))
+        snprintf(android_new, sizeof(android_new), "%s", path);
+    else
+        snprintf(android_new, sizeof(android_new), "%s%s%s", android_cwd,
+                 android_cwd[strlen(android_cwd) - 1] == '/' ? "" : "/", path);
+
+    REMAP(real, android_new);
+    if (!is_dir(real)) {
+        l_warn("chdir(%s -> %s): not a directory", path, real);
+        errno = ENOENT;
+        return -1;
+    }
+
+    snprintf(android_cwd, sizeof(android_cwd), "%s", android_new);
+    snprintf(real_cwd, sizeof(real_cwd), "%s%s", real,
+             real[strlen(real) - 1] == '/' ? "" : "/");
+    l_info("chdir(%s): cwd is now %s", path, real_cwd);
+    return 0;
+}
+
+char *getcwd_soloader(char *buf, size_t size) {
+    size_t len = strlen(android_cwd);
+    if (!buf) {
+        buf = malloc(size > len ? size : len + 1);
+        if (!buf) return NULL;
+        size = size > len ? size : len + 1;
+    }
+    if (len + 1 > size) {
+        errno = ERANGE;
+        return NULL;
+    }
+    memcpy(buf, android_cwd, len + 1);
+    l_debug("getcwd(): %s", buf);
+    return buf;
 }
 
 int symlink_soloader(const char *target, const char *linkpath) {
