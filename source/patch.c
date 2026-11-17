@@ -35,6 +35,7 @@
 
 #include "utils/dialog.h"
 #include "utils/logger.h"
+#include "utils/utils.h"
 
 // Not in the user-side SDK headers; same fallback as so_util.c
 #ifndef SCE_KERNEL_MEMBLOCK_TYPE_USER_RX
@@ -73,7 +74,32 @@ void kuser_helpers_install(void) {
     l_success("Kernel user helpers installed.");
 }
 
+// Analytics entry points of the game. They only forward events to Java
+// (Flurry, Google Analytics), which is pointless offline, and Mrun's very
+// first flurry_logEvent call crashed inside its JNI plumbing. Make them
+// return immediately.
+static const char *analytics_functions[] = {
+    "flurry_startSession",
+    "flurry_logEvent",
+    "flurry_endTimedEvent",
+    "sendGoogleEvent",
+};
+
+static void stub_analytics(void) {
+    for (size_t i = 0; i < sizeof(analytics_functions) / sizeof(analytics_functions[0]); i++) {
+        uintptr_t fn = so_symbol(&so_mod, analytics_functions[i]);
+        if (!fn) {
+            l_warn("patch: %s not found", analytics_functions[i]);
+            continue;
+        }
+        hook_addr(fn, (uintptr_t)&ret0);
+    }
+    l_success("Analytics functions stubbed out.");
+}
+
 void so_patch(void) {
+    stub_analytics();
+
     int patched = 0;
     for (size_t i = 0; i + 4 <= so_mod.text_size; i += 4) {
         uintptr_t addr = so_mod.text_base + i;
