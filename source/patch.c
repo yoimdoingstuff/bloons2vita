@@ -27,8 +27,10 @@
 #include <stdint.h>
 #include <string.h>
 
+// Same headers as so_util.c, which uses the same kubridge API: the kernel
+// header psp2kern/kernel/sysmem/memtype.h clashes with kubridge.h's types.
+#include <vitasdk.h>
 #include <kubridge.h>
-#include <psp2kern/kernel/sysmem/memtype.h>
 #include <so_util/so_util.h>
 
 #include "utils/dialog.h"
