@@ -13,6 +13,7 @@
 #define BLOONS2_PATCH_H
 
 #define SO_SHA1 "4E10AE9EB511C647FC02A4D4AC923E3D01F67882"
+#define SO_SIZE 8570008
 
 // PT_ARM_EXIDX segment, relative to the start of the text segment
 #define SO_EXIDX_OFFSET 0x006D3C30

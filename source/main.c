@@ -122,6 +122,11 @@ static void game_setup(void) {
 }
 
 static void *game_thread(void *arg) {
+    // Loader init runs here rather than on the main thread: the game's static
+    // constructors (Objective-C class registration, C++ initializers) need
+    // far more stack than the main thread's small default.
+    soloader_init_all();
+
     game_setup();
     input_init();
 
@@ -168,15 +173,17 @@ int main() {
     // lives there too.
     paths_init();
 
-    soloader_init_all();
-
-    // Run the game in a thread with an enlarged stack, as Android's GL
-    // thread would have.
+    // Everything (loader init and the game) runs in a thread with an
+    // enlarged stack, as Android's GL thread would have.
     pthread_t t;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
-    pthread_create(&t, &attr, game_thread, NULL);
+    int res = pthread_create(&t, &attr, game_thread, NULL);
+    if (res != 0) {
+        l_fatal("Could not create the game thread: %i", res);
+        return 1;
+    }
     pthread_join(t, NULL);
 
     return 0;

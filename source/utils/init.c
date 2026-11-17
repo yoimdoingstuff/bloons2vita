@@ -100,6 +100,11 @@ static void check_data_files(void) {
 // Needs vitaGL to be initialized (for the warning dialog).
 static void check_so_version(void) {
 #ifndef SKIP_SO_HASH_CHECK
+    // Hashing 8 MB takes ~5 s on the Vita; the supported build has a unique
+    // size, so only hash (to report the mismatch) when the size differs.
+    if (file_size(so_path) == SO_SIZE)
+        return;
+
     char *so_hash = file_sha1sum(so_path);
     if (so_hash && strcmp(so_hash, SO_SHA1) != 0) {
         l_warn("Unexpected libbloons2.so hash %s", so_hash);
@@ -109,6 +114,19 @@ static void check_so_version(void) {
     }
     free(so_hash);
 #endif
+}
+
+// Same as so_initialize(), but logs every constructor before calling it so a
+// crash in one of them can be pinned to its offset in libbloons2.so.
+static void run_constructors(void) {
+    for (int i = 0; i < so_mod.num_init_array; i++) {
+        int (*ctor)(void) = so_mod.init_array[i];
+        if (!ctor || (int)ctor == -1)
+            continue;
+        l_wait("ctor %i/%i at .so+0x%X", i + 1, so_mod.num_init_array,
+               (unsigned)((uintptr_t)ctor - so_mod.text_base));
+        ctor();
+    }
 }
 
 void soloader_init_all() {
@@ -187,7 +205,7 @@ void soloader_init_all() {
     // Static constructors may already touch the filesystem, so run them only
     // after everything above is in place.
     l_wait("Running %i static constructors...", so_mod.num_init_array);
-    so_initialize(&so_mod);
+    run_constructors();
     l_success("SO initialized.");
 
     coco_resolve();
