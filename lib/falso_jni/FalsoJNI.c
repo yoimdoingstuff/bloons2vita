@@ -1208,6 +1208,11 @@ jstring NewString(JNIEnv* env, const jchar* chars, jsize char_count) {
 }
 
 jsize GetStringLength(JNIEnv* env, jstring string) {
+    if (!string) {
+        fjni_logv_err("[JNI] GetStringLength(env, %p): string is null", string);
+        return 0;
+    }
+
     JavaString * str = string;
 
     // Performing extraneous conversion on debug builds to show the string in the console output
@@ -1274,6 +1279,13 @@ void ReleaseStringChars(JNIEnv* env, jstring string, const jchar *chars) {
 }
 
 jstring NewStringUTF(JNIEnv* env, const char* bytes) {
+    // bloons2vita: like Dalvik, NewStringUTF(NULL) returns NULL. Games pass
+    // [nil UTF8String] here (e.g. Bloons 2's flurry_logEvent).
+    if (!bytes) {
+        fjni_log_warn("[JNI] NewStringUTF(env, NULL): returning NULL");
+        return NULL;
+    }
+
     fjni_logv_dbg("[JNI] NewStringUTF(env, \"%s\")", bytes);
 
     int len = strlen(bytes) + 1; // with null terminator
@@ -1315,6 +1327,7 @@ jstring NewStringUTF(JNIEnv* env, const char* bytes) {
 jsize GetStringUTFLength(JNIEnv* env, jstring string) {
     if (!string) {
         fjni_logv_err("[JNI] GetStringUTFLength(env, %p): string is null", string);
+        return 0;
     }
 
     JavaString * str = string;
