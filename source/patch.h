@@ -19,6 +19,13 @@
 #define SO_EXIDX_OFFSET 0x006D3C30
 #define SO_EXIDX_SIZE   0x000044A8
 
+/**
+ * Map the replacements for Linux's kernel user helpers (atomics). Must run
+ * before so_patch() and before any game code.
+ */
+void kuser_helpers_install(void);
+
+/** Apply code patches to the loaded .so (after relocation and imports). */
 void so_patch(void);
 
 #endif // BLOONS2_PATCH_H

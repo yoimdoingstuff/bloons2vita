@@ -164,6 +164,9 @@ void soloader_init_all() {
         fatal_error("Error: could not load %s.", so_path);
     }
 
+    // Replacements for Linux's kernel user helpers (atomics in libgcc)
+    kuser_helpers_install();
+
     so_relocate(&so_mod);
     l_success("SO relocated.");
 
