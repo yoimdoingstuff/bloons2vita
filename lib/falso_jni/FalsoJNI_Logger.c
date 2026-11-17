@@ -48,12 +48,16 @@ static char _fjni_log_buffer_2[2048];
         sceKernelUnlockLwMutex(&_fjni_log_mutex, 1); \
     }
 
+// bloons2vita: also send FalsoJNI's messages to the loader's log file
+void log_file_write(const char *line) __attribute__((weak));
+
 #define LOG_PRINT \
     va_list list; \
     va_start(list, fmt); \
     sceClibVsnprintf(_fjni_log_buffer_2, sizeof(_fjni_log_buffer_2) - 1, _fjni_log_buffer_1, list); \
     va_end(list); \
-    sceClibPrintf(_fjni_log_buffer_2);
+    sceClibPrintf("%s", _fjni_log_buffer_2); \
+    if (log_file_write) log_file_write(_fjni_log_buffer_2);
 
 void _fjni_log_info(const char *fi, int li, const char *fn, const char* fmt, ...) {
 #if FALSOJNI_DEBUGLEVEL <= FALSOJNI_DEBUG_INFO

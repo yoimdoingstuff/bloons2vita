@@ -23,11 +23,11 @@ add_definitions(-DTITLE_ID="${VITA_TITLEID}")
 set(PSVITAIP "192.168.0.198" CACHE STRING "PSVita IP (for FTP access)")
 set(PARSECOREPATH "$ENV{PARSECOREPATH}" CACHE STRING "vita-parse-core main.py")
 
-# Game-specific definitions
-set(DATA_PATH "ux0:data/bloons2/" CACHE STRING "Path to data (with trailing /)")
-set(SO_PATH "${DATA_PATH}libbloons2.so" CACHE STRING "Path to .so")
-set(APK_PATH "${DATA_PATH}game.apk" CACHE STRING "Path to the game's .apk")
-add_definitions(-DDATA_PATH="${DATA_PATH}" -DSO_PATH="${SO_PATH}" -DAPK_PATH="${APK_PATH}")
+# Game-specific definitions. At runtime the port uses whichever of DATA_PATH,
+# ux0:data/bloons2/ and ur0:data/bloons2/ contains libbloons2.so (checked in
+# that order); see source/utils/paths.c.
+set(DATA_PATH "ux0:data/bloons2/" CACHE STRING "Preferred data folder (with trailing /)")
+add_definitions(-DDATA_PATH="${DATA_PATH}")
 
 option(USE_HIGHRES_ASSETS "Use the game's high resolution (\"retina\") sprite sheets" ON)
 if (USE_HIGHRES_ASSETS)
@@ -83,6 +83,7 @@ add_executable(${CMAKE_PROJECT_NAME}
                source/utils/glutil.c
                source/utils/init.c
                source/utils/logger.c
+               source/utils/paths.c
                source/utils/trophies.c
                source/utils/utils.c
                lib/pthread-svelte/source/cond_user.c

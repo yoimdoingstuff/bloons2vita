@@ -36,6 +36,7 @@
 #include "java.h"
 #include "utils/dialog.h"
 #include "utils/logger.h"
+#include "utils/paths.h"
 #include "utils/utils.h"
 
 /*
@@ -265,7 +266,7 @@ void loadTexture(jmethodID id, va_list args) {
 
 void copyAsset(jmethodID id, va_list args) {
     // Java copies the asset to /sdcard/<name>; our IO layer maps /sdcard/
-    // to DATA_PATH.
+    // to the data folder.
     char *name = jstr_dup(va_arg(args, jstring));
     if (!name) return;
 
@@ -273,7 +274,7 @@ void copyAsset(jmethodID id, va_list args) {
     size_t size;
     if (asset_load(name, &buf, &size)) {
         char out[512];
-        snprintf(out, sizeof(out), DATA_PATH "%s", name);
+        data_file(out, sizeof(out), name);
         file_mkpath(out, 0777);
         file_save(out, buf, size);
         free(buf);

@@ -27,9 +27,16 @@ void gl_preload() {
 GLboolean gl_initialized = GL_FALSE;
 
 void gl_init() {
-    // 2D sprite game: no MSAA needed. The threshold is the amount of memory
-    // vitaGL leaves untouched for everything else (thread stacks, libzip...).
-    vglInitExtended(0, 960, 544, 16 * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
+    // Thresholds are the memory vitaGL leaves free for everything else
+    // (thread stacks, system modules such as NpTrophy, common dialogs).
+    // These are the values mc3-vita runs with on hardware; 2D sprite game,
+    // so no MSAA.
+    vglInitWithCustomThreshold(0, 960, 544,
+                               18 * 1024 * 1024,  // main RAM
+                               0,                 // CDRAM
+                               20 * 1024 * 1024,  // physically contiguous
+                               12 * 1024 * 1024,  // common dialogs
+                               SCE_GXM_MULTISAMPLE_NONE);
     gl_initialized = GL_TRUE;
 }
 

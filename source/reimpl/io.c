@@ -21,6 +21,7 @@
 #include <psp2/kernel/threadmgr.h>
 
 #include "utils/logger.h"
+#include "utils/paths.h"
 #include "utils/utils.h"
 
 // Includes the following inline utilities:
@@ -57,13 +58,21 @@ const char *remap_path(const char *path, char *out, size_t out_size) {
     if (strcmp(path, "/proc/meminfo") == 0)
         return "app0:/meminfo";
     if (strcmp(path, ANDROID_APK_PATH) == 0)
-        return APK_PATH;
+        return apk_path;
 
-    if (remap_prefix(path, ANDROID_FILES_PATH, DATA_PATH "files/", out, out_size) ||
-        remap_prefix(path, ANDROID_EXTERNAL_PATH, DATA_PATH "external/", out, out_size) ||
-        remap_prefix(path, ANDROID_PKG_DATA_PATH, DATA_PATH, out, out_size) ||
-        remap_prefix(path, "/mnt/sdcard", DATA_PATH, out, out_size) ||
-        remap_prefix(path, "/sdcard", DATA_PATH, out, out_size))
+    // Only Android-style absolute paths need remapping
+    if (path[0] != '/')
+        return path;
+
+    char files_dir[96], external_dir[96];
+    data_file(files_dir, sizeof(files_dir), "files/");
+    data_file(external_dir, sizeof(external_dir), "external/");
+
+    if (remap_prefix(path, ANDROID_FILES_PATH, files_dir, out, out_size) ||
+        remap_prefix(path, ANDROID_EXTERNAL_PATH, external_dir, out, out_size) ||
+        remap_prefix(path, ANDROID_PKG_DATA_PATH, data_path, out, out_size) ||
+        remap_prefix(path, "/mnt/sdcard", data_path, out, out_size) ||
+        remap_prefix(path, "/sdcard", data_path, out, out_size))
         return out;
 
     return path;

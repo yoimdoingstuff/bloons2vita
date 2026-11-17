@@ -12,6 +12,7 @@
 #include "utils/dialog.h"
 #include "utils/glutil.h"
 #include "utils/logger.h"
+#include "utils/paths.h"
 #include "utils/trophies.h"
 #include "utils/utils.h"
 
@@ -80,24 +81,26 @@ static void check_kubridge(void) {
 }
 
 static void check_data_files(void) {
-    if (!file_exists(SO_PATH)) {
+    if (!file_exists(so_path)) {
         l_fatal("SO could not be located.");
         fatal_error("Looks like you haven't installed the data files for this "
-                    "port, or they are in an incorrect location. Please make "
-                    "sure that you have %s file exactly at that path.", SO_PATH);
+                    "port, or they are in an incorrect location. Please put "
+                    "libbloons2.so and game.apk in %s.", paths_searched());
     }
 
-    if (!file_exists(APK_PATH)) {
+    if (!file_exists(apk_path)) {
         l_fatal("APK could not be located.");
         fatal_error("The game's .apk file is missing. Please copy your "
-                    "Bloons 2 .apk to %s (rename it if needed).", APK_PATH);
+                    "Bloons 2 .apk to %s (rename it if needed).", apk_path);
     }
+
+    l_success("Data folder: %s", data_path);
 }
 
 // Needs vitaGL to be initialized (for the warning dialog).
 static void check_so_version(void) {
 #ifndef SKIP_SO_HASH_CHECK
-    char *so_hash = file_sha1sum(SO_PATH);
+    char *so_hash = file_sha1sum(so_path);
     if (so_hash && strcmp(so_hash, SO_SHA1) != 0) {
         l_warn("Unexpected libbloons2.so hash %s", so_hash);
         warning("Your libbloons2.so does not match the supported version "
@@ -128,15 +131,19 @@ void soloader_init_all() {
     scePowerSetGpuClockFrequency(222);
     scePowerSetGpuXbarClockFrequency(166);
 
+    l_success("Bloons 2 loader starting (" TITLE_ID ").");
+
     check_kubridge();
     check_data_files();
 
-    file_mkpath(DATA_PATH "files/Contents/Resources/", 0777);
-    file_mkpath(DATA_PATH "external/Contents/Resources/", 0777);
+    char path[128];
+    file_mkpath(data_file(path, sizeof(path), "files/Contents/Resources/"), 0777);
+    file_mkpath(data_file(path, sizeof(path), "external/Contents/Resources/"), 0777);
 
-    if (so_file_load(&so_mod, SO_PATH, LOAD_ADDRESS) < 0) {
+    l_wait("Loading %s...", so_path);
+    if (so_file_load(&so_mod, so_path, LOAD_ADDRESS) < 0) {
         l_fatal("SO could not be loaded.");
-        fatal_error("Error: could not load %s.", SO_PATH);
+        fatal_error("Error: could not load %s.", so_path);
     }
 
     so_relocate(&so_mod);
@@ -162,14 +169,16 @@ void soloader_init_all() {
 
     check_so_version();
 
+    l_wait("Initializing trophies...");
     if (trophies_init() < 0) {
         l_warn("Trophies initialization failed.");
         // Only nag once; the game is fully playable without trophies.
-        if (!file_exists(DATA_PATH "notrpdrm_warned")) {
+        data_file(path, sizeof(path), "notrpdrm_warned");
+        if (!file_exists(path)) {
             warning("This game features unlockable trophies but NoTrpDrm is "
                     "not installed. If you want to be able to unlock trophies, "
                     "please install it.");
-            file_save(DATA_PATH "notrpdrm_warned", (const uint8_t *)"1", 1);
+            file_save(path, (const uint8_t *)"1", 1);
         }
     } else {
         l_success("Trophies initialized.");
@@ -177,17 +186,20 @@ void soloader_init_all() {
 
     // Static constructors may already touch the filesystem, so run them only
     // after everything above is in place.
+    l_wait("Running %i static constructors...", so_mod.num_init_array);
     so_initialize(&so_mod);
     l_success("SO initialized.");
 
     coco_resolve();
 
-    prefs_load(DATA_PATH "prefs.txt");
+    l_wait("Loading preferences and settings...");
+    prefs_load(data_file(path, sizeof(path), "prefs.txt"));
     save_import_run();
     settings_load();
 
-    if (apk_open(APK_PATH) < 0)
-        fatal_error("Error: could not open %s. Is it a valid .apk file?", APK_PATH);
+    l_wait("Opening %s...", apk_path);
+    if (apk_open(apk_path) < 0)
+        fatal_error("Error: could not open %s. Is it a valid .apk file?", apk_path);
 
     if (audio_init() < 0)
         l_warn("Audio initialization failed, the game will be silent.");

@@ -40,6 +40,7 @@
 #include "utils/glutil.h"
 #include "utils/init.h"
 #include "utils/logger.h"
+#include "utils/paths.h"
 #include "utils/utils.h"
 
 #define SCREEN_W 960
@@ -67,6 +68,7 @@ static const char *system_language_code(void) {
 }
 
 static void game_setup(void) {
+    l_wait("Game thread started, calling JNI_OnLoad...");
     int (*JNI_OnLoad)(JavaVM *vm, void *reserved) = (void *)so_symbol(&so_mod, "JNI_OnLoad");
     if (JNI_OnLoad) {
         JNI_OnLoad(&jvm, NULL);
@@ -74,6 +76,7 @@ static void game_setup(void) {
     }
 
     // cocojava.firstRun()
+    l_wait("firstRun sequence...");
     coco.MsetMainActivity(&jni, COCO_CLASS, COCO_ACTIVITY);
     if (coco.MsetCountryCode)
         coco.MsetCountryCode(&jni, COCO_CLASS, jstr(system_language_code()));
@@ -81,13 +84,14 @@ static void game_setup(void) {
         coco.MsetAppVersionNumber(&jni, COCO_CLASS, jstr("1.0.0"));
     // (getFilesDir(), getExternalStorageDirectory()); the game appends
     // "/Contents/Resources/" to these itself. We pass the real Android paths
-    // and let reimpl/io.c map them to DATA_PATH.
+    // and let reimpl/io.c map them to the data folder.
     coco.MsetFilesPath(&jni, COCO_CLASS, jstr(ANDROID_FILES_PATH), jstr(ANDROID_EXTERNAL_PATH));
     if (coco.MsetDensity)
         coco.MsetDensity(&jni, COCO_CLASS, 1.5f); // hdpi
     l_success("firstRun sequence passed.");
 
     // ClearGLSurfaceView.<init>
+    l_wait("onSurfaceChanged sequence...");
     if (coco.MpreserveContext)
         coco.MpreserveContext(&jni, COCO_CLASS, 1);
 
@@ -105,11 +109,14 @@ static void game_setup(void) {
 
     // ClearRenderer.onDrawFrame, first frame: cocojava.createResources()
     // unpacks assets/unpack/* into <files>/Contents/Resources/.
-    int n = apk_extract_dir("assets/unpack/", DATA_PATH "files/Contents/Resources");
+    l_wait("Unpacking game resources...");
+    char res_dir[128];
+    int n = apk_extract_dir("assets/unpack/", data_file(res_dir, sizeof(res_dir), "files/Contents/Resources"));
     if (n < 0)
         l_error("Failed to unpack game resources from the apk.");
     coco.MsetAPKPath(&jni, COCO_CLASS, jstr(ANDROID_APK_PATH));
 
+    l_wait("Calling Mrun...");
     coco.Mrun(&jni, COCO_CLASS);
     l_success("Mrun passed.");
 }
@@ -120,12 +127,18 @@ static void *game_thread(void *arg) {
 
     bool dialog_was_active = false;
     uint64_t last_frame = sceKernelGetProcessTimeWide();
+    unsigned frame = 0;
 
     while (1) {
         if (!dialog_was_active)
             input_update();
 
+        if (frame < 3)
+            l_wait("Rendering frame %u...", frame);
         coco.Mrender(&jni, COCO_CLASS);
+        if (frame < 3)
+            l_success("Frame %u rendered.", frame);
+        frame++;
 
         bool dialog_active = java_ui_update();
         if (dialog_active && !dialog_was_active)
@@ -151,6 +164,10 @@ static void *game_thread(void *arg) {
 }
 
 int main() {
+    // ux0:data/bloons2/ or ur0:data/bloons2/; must come first, the log file
+    // lives there too.
+    paths_init();
+
     soloader_init_all();
 
     // Run the game in a thread with an enlarged stack, as Android's GL

@@ -25,25 +25,29 @@ extern "C" {
 #define LT_SUCCESS 5
 #define LT_WAIT    6
 
+// Everything is printed with sceClibPrintf and appended to log.txt in the
+// data folder (recreated on every launch, written unbuffered so the last
+// lines survive a crash). Release builds keep startup milestones, warnings
+// and errors; Debug builds add info and debug detail.
 #ifdef DEBUG_SOLOADER
 #define l_debug(...)   _log_print(LT_DEBUG,   __VA_ARGS__)
 #define l_info(...)    _log_print(LT_INFO,    __VA_ARGS__)
-#define l_warn(...)    _log_print(LT_WARN,    __VA_ARGS__)
-#define l_success(...) _log_print(LT_SUCCESS, __VA_ARGS__)
-#define l_wait(...)    _log_print(LT_WAIT,    __VA_ARGS__)
 #else
 #define l_debug(...)
 #define l_info(...)
-#define l_warn(...)
-#define l_success(...)
-#define l_wait(...)
 #endif
 
+#define l_warn(...)    _log_print(LT_WARN,    __VA_ARGS__)
+#define l_success(...) _log_print(LT_SUCCESS, __VA_ARGS__)
+#define l_wait(...)    _log_print(LT_WAIT,    __VA_ARGS__)
 #define l_error(...)   _log_print(LT_ERROR,   __VA_ARGS__)
 #define l_fatal(...)   _log_print(LT_FATAL,   __VA_ARGS__)
 
 void _log_print(int t, const char* fmt, ...)
                 __attribute__ ((format (printf, 2, 3)));
+
+/** Append a raw line to log.txt (ANSI color codes are stripped). */
+void log_file_write(const char *line);
 
 #ifdef __cplusplus
 };

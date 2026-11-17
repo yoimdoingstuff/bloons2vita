@@ -3,11 +3,11 @@
  *
  * One-time import of the player's own Android save data into the port.
  *
- * Expected layout on the memory card (copied from the phone's
- * /data/data/com.miniclip.bloons2/ folder):
+ * Expected layout in the data folder (ux0:data/bloons2/ or ur0:data/bloons2/,
+ * copied from the phone's /data/data/com.miniclip.bloons2/ folder):
  *
- *   ux0:data/bloons2/import/shared_prefs/GAME_INFO.xml   SharedPreferences
- *   ux0:data/bloons2/import/files/...                    game save files
+ *   import/shared_prefs/GAME_INFO.xml   SharedPreferences
+ *   import/files/...                    game save files
  *
  * GAME_INFO.xml is Android's standard SharedPreferences XML:
  *
@@ -18,7 +18,7 @@
  *   </map>
  *
  * Its entries are merged into our preferences (game/prefs.c), and files/ is
- * copied over DATA_PATH "files/". Afterwards the folder is renamed to
+ * copied over the port's files/ folder. Afterwards the folder is renamed to
  * "import_done" so the import only ever runs once.
  *
  * This software may be modified and distributed under the terms
@@ -40,8 +40,7 @@
 #include "utils/logger.h"
 #include "utils/utils.h"
 
-#define IMPORT_DIR      DATA_PATH "import"
-#define IMPORT_DONE_DIR DATA_PATH "import_done"
+#include "utils/paths.h"
 
 /*
  * SharedPreferences XML
@@ -194,29 +193,40 @@ static int copy_tree(const char *src, const char *dst) {
 }
 
 void save_import_run(void) {
-    if (!is_dir(IMPORT_DIR))
+    char import_dir[128], done_dir[128], prefs_xml[160], src_files[160], dst_files[128];
+    data_file(import_dir, sizeof(import_dir), "import");
+    data_file(done_dir, sizeof(done_dir), "import_done");
+
+    if (!is_dir(import_dir))
         return;
 
-    l_info("save_import: importing Android save data from %s", IMPORT_DIR);
+    l_info("save_import: importing Android save data from %s", import_dir);
 
-    int prefs = import_shared_prefs(IMPORT_DIR "/shared_prefs/GAME_INFO.xml");
-    int files = copy_tree(IMPORT_DIR "/files", DATA_PATH "files");
+    snprintf(prefs_xml, sizeof(prefs_xml), "%s/shared_prefs/GAME_INFO.xml", import_dir);
+    snprintf(src_files, sizeof(src_files), "%s/files", import_dir);
+    data_file(dst_files, sizeof(dst_files), "files");
+
+    int prefs = import_shared_prefs(prefs_xml);
+    int files = copy_tree(src_files, dst_files);
 
     if (prefs < 0 && files == 0) {
-        warning("Found ux0:data/bloons2/import/ but nothing to import in it. "
-                "Expected shared_prefs/GAME_INFO.xml and/or a files/ folder "
-                "copied from your phone.");
+        char msg[256];
+        snprintf(msg, sizeof(msg),
+                 "Found %s/ but nothing to import in it. Expected "
+                 "shared_prefs/GAME_INFO.xml and/or a files/ folder copied "
+                 "from your phone.", import_dir);
+        warning(msg);
         return;
     }
 
     // Only import once
-    if (is_dir(IMPORT_DONE_DIR)) {
-        char old[256];
-        snprintf(old, sizeof(old), "%s_%llu", IMPORT_DONE_DIR,
+    if (is_dir(done_dir)) {
+        char old[160];
+        snprintf(old, sizeof(old), "%s_%llu", done_dir,
                  (unsigned long long)current_timestamp_ms());
-        rename(IMPORT_DONE_DIR, old);
+        rename(done_dir, old);
     }
-    rename(IMPORT_DIR, IMPORT_DONE_DIR);
+    rename(import_dir, done_dir);
 
     char msg[256];
     snprintf(msg, sizeof(msg),

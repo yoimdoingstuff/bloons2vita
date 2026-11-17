@@ -1,7 +1,7 @@
 /*
  * settings.c
  *
- * Port settings, read from DATA_PATH "settings.txt" (created with defaults
+ * Port settings, read from settings.txt in the data folder (created with defaults
  * and explanations on first launch). Simple "key = value" lines; anything
  * after '#' is a comment.
  *
@@ -18,9 +18,8 @@
 #include <string.h>
 
 #include "utils/logger.h"
+#include "utils/paths.h"
 #include "utils/utils.h"
-
-#define SETTINGS_PATH DATA_PATH "settings.txt"
 
 Settings settings = {
     .aim_mode = AIM_MODE_PRECISE,
@@ -30,7 +29,7 @@ Settings settings = {
 
 static const char default_file[] =
     "# Bloons 2 for PS Vita - settings\n"
-    "# Edit this file on your memory card, then restart the game.\n"
+    "# Edit this file on your Vita (e.g. with VitaShell), then restart the game.\n"
     "\n"
     "# How the analog stick aims a throw inside a level:\n"
     "#   0 = Classic: the stick is the pull, like Angry Birds. Tilt to aim,\n"
@@ -60,15 +59,18 @@ static char *trim(char *s) {
 }
 
 void settings_load(void) {
-    if (!file_exists(SETTINGS_PATH)) {
-        file_save(SETTINGS_PATH, (const uint8_t *)default_file, sizeof(default_file) - 1);
-        l_info("settings: wrote defaults to %s", SETTINGS_PATH);
+    char settings_path[128];
+    data_file(settings_path, sizeof(settings_path), "settings.txt");
+
+    if (!file_exists(settings_path)) {
+        file_save(settings_path, (const uint8_t *)default_file, sizeof(default_file) - 1);
+        l_info("settings: wrote defaults to %s", settings_path);
         return;
     }
 
     uint8_t *buf;
     size_t size;
-    if (!file_load(SETTINGS_PATH, &buf, &size))
+    if (!file_load(settings_path, &buf, &size))
         return;
 
     char *data = realloc(buf, size + 1);

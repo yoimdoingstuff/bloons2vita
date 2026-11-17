@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 /**
- * If DATA_PATH "import/" exists, import its contents and rename the folder
+ * If <data folder>/import/ exists, import its contents and rename the folder
  * to "import_done". Call after prefs_load() and before the game starts.
  */
 void save_import_run(void);

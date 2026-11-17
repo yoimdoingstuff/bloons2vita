@@ -1,7 +1,7 @@
 /*
  * settings.h
  *
- * Port settings, read from DATA_PATH "settings.txt" (created with defaults
+ * Port settings, read from settings.txt in the data folder (created with defaults
  * and explanations on first launch).
  *
  * This software may be modified and distributed under the terms

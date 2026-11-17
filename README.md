@@ -71,14 +71,20 @@ precisely:
 > be found as an online tool). sha1sum for `lib/armeabi/libbloons2.so`
 > **must** be `4e10ae9eb511c647fc02a4d4ac923e3d01f67882`
 
-- Open the `.apk` with any zip explorer (like [7-Zip](https://www.7-zip.org/))
-  and extract the file `lib/armeabi/libbloons2.so` into `ux0:data/bloons2/` on
-  your Vita. Example of correct resulting path: `ux0:data/bloons2/libbloons2.so`
+- Pick a data folder: `ux0:data/bloons2/` (memory card) or
+  `ur0:data/bloons2/` (internal storage). The port uses whichever one
+  contains `libbloons2.so`, checking ux0: first; everything else (saves,
+  settings, log) is kept in the same folder. It needs about 35 MB.
 
-- Copy the `.apk` itself to `ux0:data/bloons2/` and rename it to `game.apk`.
+- Open the `.apk` with any zip explorer (like [7-Zip](https://www.7-zip.org/))
+  and extract the file `lib/armeabi/libbloons2.so` into your data folder.
+  Example of correct resulting path: `ux0:data/bloons2/libbloons2.so`
+  (or `ur0:data/bloons2/libbloons2.so`)
+
+- Copy the `.apk` itself to the same folder and rename it to `game.apk`.
   Example of correct resulting path: `ux0:data/bloons2/game.apk`. The game
   reads its textures, sounds and music straight from it; level and font data
-  is unpacked automatically to `ux0:data/bloons2/files/` on first launch.
+  is unpacked automatically to the `files/` subfolder on first launch.
 
 - Install `Bloons2.vpk` (from [Releases][latest-release], or build it
   yourself as described below).
@@ -92,8 +98,9 @@ precisely:
   ux0:tai/NoTrpDrm.suprx
 ```
 
-Your progress is saved to `ux0:data/bloons2/prefs.txt` and
-`ux0:data/bloons2/files/`.
+Your progress is saved to `prefs.txt` and the `files/` folder in your data
+folder. In the rest of this README, `ux0:data/bloons2/` stands for whichever
+data folder you chose.
 
 ### Bringing over your Android save (optional)
 
@@ -202,6 +209,23 @@ Known Issues
 4. This port hasn't been verified on real hardware yet. If the game crashes,
    build in Debug mode and check the log (see below).
 
+Reporting a crash
+----------------
+
+Every launch writes a log to `ux0:data/bloons2/log.txt`; its last lines show
+what the port was doing when it stopped. The Debug build logs much more.
+
+1. Install the `Bloons2-Debug` VPK from the latest
+   [Actions run](../../actions) (or Releases) and launch the game until it
+   crashes.
+2. Collect:
+   - `ux0:data/bloons2/log.txt`
+   - the newest `ux0:data/psp2core-*.psp2dmp` crash dump, if there is one
+   - the error code shown by the system (e.g. `C2-12828-1`)
+3. Open an issue with these attached, and mention which build (Actions run)
+   you used: the dump can only be decoded with the matching `so_loader` from
+   that run's artifact.
+
 Build Instructions (For Developers)
 ----------------
 
@@ -236,7 +260,7 @@ Build options (pass with `-D<OPTION>=<VALUE>`):
 
 | Option               | Default              | Description                                              |
 |----------------------|----------------------|----------------------------------------------------------|
-| `DATA_PATH`          | `ux0:data/bloons2/`  | Where the game files live on the Vita                    |
+| `DATA_PATH`          | `ux0:data/bloons2/`  | Data folder checked first (then ux0:/ur0:data/bloons2/)  |
 | `USE_HIGHRES_ASSETS` | `ON`                 | Use the game's high resolution sprite sheets             |
 | `SKIP_SO_HASH_CHECK` | `OFF`                | Don't warn when `libbloons2.so` isn't v1.0.0             |
 
